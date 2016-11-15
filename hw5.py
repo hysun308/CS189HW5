@@ -1,4 +1,4 @@
-from mnist import MNIST
+#from mnist import MNIST
 import sklearn.metrics as metrics
 import numpy as np
 import csv
@@ -68,8 +68,10 @@ def buildtree(data,scoref=entropy):
                 continue
 
             # Information gain
+            n1 = set1.shape[0]
+            n2 = set2.shape[0]
             p = set1.shape[0] / N  # p is the size of a child set relative to its parent
-            info_gain = current_score - p * scoref(set1) - (1 - p) * scoref(set2)  # cf. formula information gain
+            info_gain = current_score -  (n1*scoref(set1) +n2*scoref(set2))/(n1+n2)  # cf. formula information gain
             if info_gain > best_gain and set1.shape[0] > 0 and set2.shape[0] > 0:  # set must not be empty
                 best_gain = info_gain
                 best_criteria = (col, value)
@@ -85,7 +87,7 @@ def buildtree(data,scoref=entropy):
         return decisionnode(results=uniquecounts(data))
 
 def csv_out(label):
-    with open('heyi1.csv','w') as file:
+    with open('heyi.csv','w') as file:
         fwriter = csv.writer(file)
         fwriter.writerow(['Id','Category'])
         for i in range(len(label)):
@@ -105,7 +107,6 @@ def printtree(tree,indent=''):
         printtree(tree.fb,indent+'  ')
 def classify(data,tree):
         if tree.results != None:
-            print(tree.results)
             return (max(tree.results,key=tree.results.get))
         else:
             v = data[tree.col]
@@ -133,22 +134,32 @@ if __name__ == "__main__":
     data_train = np.zeros((X_train.shape[0],X_train.shape[1]+1))
     data_train[:,0:X_train.shape[1]]=X_train
     data_train[:,X_train.shape[1]]=y_train
-    np.random.shuffle(data_train)
+    #np.random.shuffle(data_train)
+    N = data_train.shape[0]
+    y_train=np.array([data_train[:,X_train.shape[1]]])
+    y_train=y_train.T
     print(y_train.max())
     print(y_train.min())
+    print(y_train.shape)
     print(uniquecounts(data_train))
     print(entropy(data_train))
 
-    tree = buildtree(data_train[0:20])
-    printtree(tree)
-    l=[]
-    for i in range(20):
+    tree = buildtree(data_train)
+    print(labels_train.shape)
+    l= []
+    for i in range(N):
         result = classify(data_train[i,0:32],tree)
         l.append(result)
-    print(y_train[0:20])
-    print(l)
-
-
+    pred_labels_train = np.array([l])
+    pred_labels_train = pred_labels_train.T
+    print(labels_train.shape)
+    print(pred_labels_train.shape)
     print("Decision Tree")
-    #print("Train accuracy: {0}".format(metrics.accuracy_score(labels_train, pred_labels_train)))
-    #csv_out(pred_labels_test)
+    print("Train accuracy: {0}".format(metrics.accuracy_score(y_train,pred_labels_train)))
+    t=[]
+    for i in range(X_test.shape[0]):
+        test_result = classify(X_test[i],tree)
+        t.append(test_result)
+    pred_labels_test = np.array([t])
+    pred_labels_test = pred_labels_test.T
+    csv_out(pred_labels_test)
